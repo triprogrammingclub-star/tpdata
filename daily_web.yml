@@ -1,0 +1,48 @@
+name: Fetch Taipower Daily Web Data
+
+on:
+  workflow_dispatch:
+  schedule:
+    # GitHub cron uses UTC. 18:20 UTC = 02:20 Taiwan time.
+    - cron: '20 18 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: taipower-daily-web
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch daily web data through Cloudflare Worker
+        env:
+          WORKER_URL: ${{ secrets.WORKER_URL }}
+          WORKER_TOKEN: ${{ secrets.WORKER_TOKEN }}
+        run: python scripts/fetch_daily.py
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fuel_type loadareas || true
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update Taipower daily web data"
+            git pull --rebase
+            git push
+          fi
