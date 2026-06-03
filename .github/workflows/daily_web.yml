@@ -2,9 +2,6 @@ name: Fetch Taipower Daily Web Data
 
 on:
   workflow_dispatch:
-  schedule:
-    # GitHub cron uses UTC. 18:20 UTC = 02:20 Taiwan time.
-    - cron: '20 18 * * *'
 
 permissions:
   contents: write
@@ -20,6 +17,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Pull latest repository state before precheck
+        run: git pull --rebase
 
       - uses: actions/setup-python@v5
         with:
