@@ -1,7 +1,7 @@
-name: 手動歸檔（立即整理現有檔案）
+name: 手動歸檔（立即整理現有檔案，日資料夾）
 
 on:
-  workflow_dispatch:   # 只能手動觸發
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -24,4 +24,4 @@ jobs:
           GH_OWNER: ${{ github.repository_owner }}
           GH_REPO: ${{ github.event.repository.name }}
           GH_BRANCH: main
-        run: python scripts/archive_monthly.py
+        run: python scripts/archive_daily.py

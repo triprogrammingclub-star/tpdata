@@ -1,10 +1,10 @@
-name: 每月歸檔（自動）
+name: 每月歸檔（自動，日資料夾）
 
 on:
   schedule:
     # 每月 1 號 台灣時間 02:00（UTC 前一天 18:00）
     - cron: '0 18 28-31 * *'
-  workflow_dispatch:   # 也允許手動觸發
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -40,4 +40,4 @@ jobs:
           GH_OWNER: ${{ github.repository_owner }}
           GH_REPO: ${{ github.event.repository.name }}
           GH_BRANCH: main
-        run: python scripts/archive_monthly.py
+        run: python scripts/archive_daily.py
