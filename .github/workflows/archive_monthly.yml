@@ -1,0 +1,43 @@
+name: 每月歸檔（自動）
+
+on:
+  schedule:
+    # 每月 1 號 台灣時間 02:00（UTC 前一天 18:00）
+    - cron: '0 18 28-31 * *'
+  workflow_dispatch:   # 也允許手動觸發
+
+permissions:
+  contents: write
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 檢查是否為每月1號（台灣時間）
+        id: datecheck
+        run: |
+          TW_DAY=$(TZ='Asia/Taipei' date +%d)
+          echo "台灣日期：$TW_DAY 號"
+          if [ "$TW_DAY" = "01" ]; then
+            echo "run=yes" >> $GITHUB_OUTPUT
+          else
+            echo "run=no" >> $GITHUB_OUTPUT
+            echo "非1號，跳過"
+          fi
+
+      - name: 執行歸檔
+        if: steps.datecheck.outputs.run == 'yes'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_OWNER: ${{ github.repository_owner }}
+          GH_REPO: ${{ github.event.repository.name }}
+          GH_BRANCH: main
+        run: python scripts/archive_monthly.py
