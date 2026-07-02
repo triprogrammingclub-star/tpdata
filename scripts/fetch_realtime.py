@@ -71,7 +71,12 @@ def fetch(file_key: str) -> str | None:
             resp = requests.get(WORKER_URL, params=params, headers=headers, timeout=20)
             resp.raise_for_status()
             log.info("成功 %s bytes", len(resp.content))
-            return resp.text
+            # 修正編碼：台電回應未標 charset 時 resp.text 會誤用 ISO-8859-1 解碼造成中文亂碼，
+            # 一律以原始位元組用 UTF-8 解碼（utf-8-sig 可同時吃掉 BOM）
+            return resp.content.decode("utf-8-sig")
+        except UnicodeDecodeError as exc:
+            log.error("%s 非 UTF-8 內容，不存檔：%s", file_key, exc)
+            return None
         except requests.HTTPError as exc:
             status = exc.response.status_code if exc.response is not None else "unknown"
             log.warning("HTTP %s", status)

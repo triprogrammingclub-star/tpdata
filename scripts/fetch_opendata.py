@@ -5,19 +5,15 @@ fetch_opendata.py  ─ 每 10 分鐘執行
   genload/       機組發電
   region/        區域別發電用電
 
-找不到資料時間 → 用系統時間，並在有設定 Gmail secrets 時寄信通知。
-環境變數：NOTIFY_EMAIL_USER、NOTIFY_EMAIL_PASS、NOTIFY_EMAIL_TO（選填）
+找不到資料時間 → 用系統時間存檔，並記錄警告 log。
 """
 
 import csv
 import io
 import json
 import logging
-import os
 import re
-import smtplib
 from datetime import datetime, timezone, timedelta
-from email.mime.text import MIMEText
 from pathlib import Path
 
 import requests
@@ -35,27 +31,6 @@ DIRS = {
     "genload": REPO_DIR / "genload",
     "region": REPO_DIR / "region",
 }
-
-NOTIFY_TO = os.environ.get("NOTIFY_EMAIL_TO", "")
-NOTIFY_FROM = os.environ.get("NOTIFY_EMAIL_USER", "")
-NOTIFY_PASS = os.environ.get("NOTIFY_EMAIL_PASS", "")
-
-
-def send_notify(subject: str, body: str) -> None:
-    if not NOTIFY_TO or not NOTIFY_FROM or not NOTIFY_PASS:
-        log.warning("未完整設定寄信環境變數，略過通知")
-        return
-    try:
-        msg = MIMEText(body, "plain", "utf-8")
-        msg["Subject"] = subject
-        msg["From"] = NOTIFY_FROM
-        msg["To"] = NOTIFY_TO
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-            smtp.login(NOTIFY_FROM, NOTIFY_PASS)
-            smtp.send_message(msg)
-        log.info("通知信已寄出：%s", subject)
-    except Exception as exc:
-        log.warning("寄信失敗：%s", exc)
 
 
 def now_tw_str() -> str:
@@ -110,10 +85,6 @@ def job_supply() -> None:
     if ts is None:
         ts = now_tw_str()
         log.warning("supply_demand 找不到 publish_time，用系統時間：%s", ts)
-        send_notify(
-            "⚠️ 台電資料：supply_demand 找不到 publish_time",
-            f"時間：{ts}\n來源：{URL_SUPPLY}\n已用系統時間存檔，請確認資料格式是否異動。",
-        )
 
     content = json.dumps(data, ensure_ascii=False, indent=2)
     save(DIRS["supply"], f"{ts}.json", content)
@@ -137,10 +108,6 @@ def job_genload() -> None:
     if ts is None:
         ts = now_tw_str()
         log.warning("genload 找不到 DateTime，用系統時間：%s", ts)
-        send_notify(
-            "⚠️ 台電資料：genload 找不到 DateTime",
-            f"時間：{ts}\n來源：{URL_GENLOAD}\n已用系統時間存檔，請確認資料格式是否異動。",
-        )
 
     content = json.dumps(data, ensure_ascii=False, indent=2)
     save(DIRS["genload"], f"{ts}.json", content)
@@ -167,10 +134,6 @@ def job_region() -> None:
     if ts is None:
         ts = now_tw_str()
         log.warning("region 找不到時間，用系統時間：%s", ts)
-        send_notify(
-            "⚠️ 台電資料：region 找不到時間",
-            f"時間：{ts}\n來源：{URL_REGION}\n已用系統時間存檔，請確認資料格式是否異動。",
-        )
 
     save(DIRS["region"], f"{ts}.csv", text)
 
